@@ -1,0 +1,320 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cronos Hiperfoco Pro</title>
+    <style>
+        * { box-sizing: border-box; }
+
+        body {
+            margin: 0;
+            min-height: 100vh;
+            background: #050a14;
+            color: #b8c4d9;
+            font-family: sans-serif;
+            padding: 1rem;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        .w-full { width: 100%; }
+        .max-w-sm { max-width: 24rem; }
+        .space-y-4 > * + * { margin-top: 1rem; }
+        .space-y-3 > * + * { margin-top: 0.75rem; }
+        .space-y-2 > * + * { margin-top: 0.5rem; }
+        .mt-4 { margin-top: 1rem; }
+        .p-3 { padding: 0.75rem; }
+        .p-4 { padding: 1rem; }
+        .p-6 { padding: 1.5rem; }
+        .p-8 { padding: 2rem; }
+        .rounded { border-radius: 0.25rem; }
+        .rounded-lg { border-radius: 0.5rem; }
+        .rounded-xl { border-radius: 0.75rem; }
+        .rounded-3xl { border-radius: 1.5rem; }
+        .flex { display: flex; }
+        .flex-1 { flex: 1 1 0%; }
+        .gap-2 { gap: 0.5rem; }
+        .justify-between { justify-content: space-between; }
+        .text-center { text-align: center; }
+        .text-sm { font-size: 0.875rem; }
+        .text-xs { font-size: 0.75rem; }
+        .text-xl { font-size: 1.25rem; }
+        .text-2xl { font-size: 1.5rem; }
+        .text-6xl { font-size: 3.75rem; }
+        .font-bold { font-weight: 700; }
+        .font-mono { font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace; }
+        .uppercase { text-transform: uppercase; }
+        .tracking-widest { letter-spacing: 0.1em; }
+        .opacity-70 { opacity: 0.7; }
+        .opacity-50 { opacity: 0.5; }
+
+        .bg-panel {
+            background: linear-gradient(180deg, #0a1426 0%, #050a14 100%);
+            border: 1px solid #1a3357;
+        }
+
+        .text-neon {
+            color: #00f2ff;
+            text-shadow: 0 0 10px #00f2ff;
+        }
+
+        input,
+        select {
+            background: #0a1426;
+            border: 1px solid #1a3357;
+            color: white;
+            font-size: 16px;
+            width: 100%;
+            min-height: 46px;
+            outline: none;
+            -webkit-appearance: none;
+            appearance: none;
+        }
+
+        input::placeholder {
+            color: #6f829e;
+        }
+
+        button {
+            min-height: 46px;
+            background: transparent;
+            color: inherit;
+            font: inherit;
+            cursor: pointer;
+            -webkit-appearance: none;
+            appearance: none;
+        }
+
+        .border-neon {
+            border: 1px solid #00f2ff;
+        }
+
+        .bg-blue-900 {
+            background: #1e3a8a;
+        }
+
+        .bg-black-40 {
+            background: rgba(0, 0, 0, 0.4);
+        }
+
+        .border-blue-900-50 {
+            border: 1px solid rgba(30, 58, 138, 0.5);
+        }
+
+        .hidden {
+            display: none;
+        }
+    </style>
+</head>
+<body>
+    <div id="root" class="w-full max-w-sm">
+        <div class="space-y-4">
+            <h1 class="text-neon text-2xl font-bold text-center uppercase tracking-widest">Cronos Pro</h1>
+
+            <div id="setup" class="bg-panel p-6 rounded-3xl space-y-3">
+                <input id="cliente" placeholder="Cliente" class="w-full p-3 rounded" />
+                <input id="tarefa" placeholder="Tarefa" class="w-full p-3 rounded" />
+
+                <div class="flex gap-2">
+                    <select id="horas" class="flex-1 p-3 rounded"></select>
+                    <select id="min" class="flex-1 p-3 rounded"></select>
+                </div>
+
+                <button id="adicionar" class="w-full p-3 border-neon rounded text-neon font-bold">Adicionar à Fila</button>
+                <button id="iniciar" class="w-full p-4 bg-blue-900 rounded-xl font-bold uppercase">Iniciar Fila</button>
+
+                <div id="fila" class="space-y-2 mt-4"></div>
+            </div>
+
+            <div id="execucao" class="bg-panel p-8 rounded-3xl text-center hidden">
+                <div id="tempo" class="text-neon text-6xl font-mono">0:00</div>
+                <p id="tituloAtual" class="text-xl font-bold mt-4"></p>
+                <p id="clienteAtual" class="text-sm opacity-50"></p>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        var fila = [];
+        var item = { cliente: "", tarefa: "", horas: 0, min: 0 };
+        var executando = false;
+        var atual = null;
+        var tempo = 0;
+        var isPausa = false;
+        var timer = null;
+
+        var clienteEl = document.getElementById("cliente");
+        var tarefaEl = document.getElementById("tarefa");
+        var horasEl = document.getElementById("horas");
+        var minEl = document.getElementById("min");
+        var filaEl = document.getElementById("fila");
+        var setupEl = document.getElementById("setup");
+        var execucaoEl = document.getElementById("execucao");
+        var tempoEl = document.getElementById("tempo");
+        var tituloAtualEl = document.getElementById("tituloAtual");
+        var clienteAtualEl = document.getElementById("clienteAtual");
+
+        function montarSelects() {
+            for (var h = 0; h < 9; h++) {
+                var optH = document.createElement("option");
+                optH.value = h;
+                optH.textContent = h + "h";
+                horasEl.appendChild(optH);
+            }
+
+            [0, 15, 20, 30, 45, 50].forEach(function(m) {
+                var optM = document.createElement("option");
+                optM.value = m;
+                optM.textContent = m + "m";
+                minEl.appendChild(optM);
+            });
+        }
+
+        function falar(mensagem) {
+            if (!("speechSynthesis" in window)) return;
+
+            try {
+                window.speechSynthesis.cancel();
+                var s = new SpeechSynthesisUtterance(mensagem);
+                s.lang = "pt-BR";
+                window.speechSynthesis.speak(s);
+            } catch (e) {}
+        }
+
+        function adicionar() {
+            item.cliente = clienteEl.value.trim();
+            item.tarefa = tarefaEl.value.trim();
+            item.horas = Number(horasEl.value);
+            item.min = Number(minEl.value);
+
+            if (!item.cliente || !item.tarefa) return;
+
+            var totalMin = (item.horas * 60) + parseInt(item.min, 10);
+
+            fila.push({
+                cliente: item.cliente,
+                tarefa: item.tarefa,
+                horas: item.horas,
+                min: item.min,
+                id: Date.now(),
+                totalMin: totalMin
+            });
+
+            item = { cliente: "", tarefa: "", horas: 0, min: 0 };
+
+            clienteEl.value = "";
+            tarefaEl.value = "";
+            horasEl.value = 0;
+            minEl.value = 0;
+
+            renderFila();
+        }
+
+        function iniciarExecucao() {
+            if (fila.length > 0) {
+                executando = true;
+                setupEl.classList.add("hidden");
+                execucaoEl.classList.remove("hidden");
+                rodarProximo(fila);
+            }
+        }
+
+        function rodarProximo(lista) {
+            clearInterval(timer);
+
+            if (lista.length === 0) {
+                executando = false;
+                atual = null;
+                setupEl.classList.remove("hidden");
+                execucaoEl.classList.add("hidden");
+                renderFila();
+                return;
+            }
+
+            var prox = lista[0];
+            atual = prox;
+            tempo = prox.totalMin * 60;
+            isPausa = false;
+
+            falar("Iniciando " + prox.tarefa + " para " + prox.cliente);
+            renderExecucao();
+
+            timer = setInterval(contar, 1000);
+        }
+
+        function contar() {
+            if (!atual) return;
+
+            if (!isPausa && tempo === 300) {
+                falar("Atenção, faltam 5 minutos.");
+            }
+
+            if (tempo <= 1) {
+                clearInterval(timer);
+
+                if (!isPausa) {
+                    falar("Hora da pausa. 15 minutos.");
+                    isPausa = true;
+                    tempo = 900;
+                    renderExecucao();
+                    timer = setInterval(contar, 1000);
+                    return;
+                } else {
+                    falar("Pausa encerrada. Voltando.");
+                    fila = fila.slice(1);
+                    renderFila();
+                    rodarProximo(fila);
+                    return;
+                }
+            }
+
+            tempo = tempo - 1;
+            renderExecucao();
+        }
+
+        function renderExecucao() {
+            tempoEl.textContent = Math.floor(tempo / 60) + ":" + String(tempo % 60).padStart(2, "0");
+            tituloAtualEl.textContent = isPausa ? "PAUSA OBRIGATÓRIA" : atual.tarefa;
+            clienteAtualEl.textContent = atual.cliente;
+        }
+
+        function renderFila() {
+            filaEl.innerHTML = "";
+
+            fila.forEach(function(f) {
+                var box = document.createElement("div");
+                box.className = "bg-black-40 p-3 rounded-lg text-sm border-blue-900-50";
+
+                var cliente = document.createElement("div");
+                cliente.className = "font-bold text-neon";
+                cliente.textContent = f.cliente;
+
+                var meta = document.createElement("div");
+                meta.className = "flex justify-between text-xs opacity-70";
+
+                var tarefa = document.createElement("span");
+                tarefa.textContent = f.tarefa;
+
+                var tempoInfo = document.createElement("span");
+                tempoInfo.textContent = f.horas + "h " + f.min + "m";
+
+                meta.appendChild(tarefa);
+                meta.appendChild(tempoInfo);
+
+                box.appendChild(cliente);
+                box.appendChild(meta);
+
+                filaEl.appendChild(box);
+            });
+        }
+
+        document.getElementById("adicionar").addEventListener("click", adicionar);
+        document.getElementById("iniciar").addEventListener("click", iniciarExecucao);
+
+        montarSelects();
+        renderFila();
+    </script>
+</body>
+</html>
